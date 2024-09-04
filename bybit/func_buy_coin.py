@@ -90,10 +90,15 @@ def buy_coin_by_limit_price(symbol, side, price):
         except Exception:
             pass
 
-        precision = len(session.get_instruments_info(
+        qty_step = session.get_instruments_info(
             category="linear",
             symbol=symbol,
-        )['result']['list'][0]['lotSizeFilter']['qtyStep'].split('.')[1])
+        )['result']['list'][0]['lotSizeFilter']['qtyStep']
+
+        if '.' in qty_step:
+            precision = len(qty_step.split('.')[1])
+        else:
+            precision = int(1 / len(qty_step)) - 1
 
         # Calculate quantity to buy based on amount in USD
         qty = settings.amount_usd / price
