@@ -104,22 +104,28 @@ def buy_coin_by_limit_price(symbol, side, price):
         qty = settings.amount_usd / price
         qty = str(round(qty, precision))
 
+        
+        
         if side == "Buy":
             stop_loss_price = price * (1 - settings.stop_loss_percent / 100)
             take_profit_price = price * (1 + settings.take_profit_percent / 100)
+            triggerDirection = "1"
         else:
             stop_loss_price = price * (1 + settings.stop_loss_percent / 100)
             take_profit_price = price * (1 - settings.take_profit_percent / 100)
+            triggerDirection = "2"
 
         orders = [{
             'symbol': symbol,
             'side': side,
-            'order_type': 'Limit',
+            'order_type': 'Conditional',
             'qty': qty,
             'time_in_force': "GTC",
             'price': str(price),
             'stopLoss': str(stop_loss_price),
-            "takeProfit": str(take_profit_price)
+            "takeProfit": str(take_profit_price),
+            "triggerDirection": triggerDirection,
+            "triggerPrice": str(price),
         }]
 
         order = session.place_batch_order(category='linear', request=orders)
