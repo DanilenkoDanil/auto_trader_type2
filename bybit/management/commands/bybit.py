@@ -2,7 +2,8 @@ import traceback
 
 from bybit.models import Chat, ErrorLog
 from bybit.func_buy_coin import buy_coin_with_stop_loss, buy_coin_by_limit_price, \
-    change_tp_ls_order, close_position, close_order_by_symbol
+    change_tp_ls, close_position, close_order_by_symbol
+from bybit.utils import extract_symbol, extract_price
 
 from django.core.management.base import BaseCommand
 from telethon.sync import TelegramClient
@@ -44,8 +45,7 @@ def main():
                         print('2')
                         words = message.split(" ")
 
-                        symbol = words[0]
-                        symbol = symbol[1:] + "USDT"
+                        symbol = extract_symbol(message)
 
                         if "LONG" in message:
                             side = "Buy"
@@ -61,6 +61,7 @@ def main():
                     elif event.message.reply_to_msg_id and ("TP" in message or "SL" in message):
                         print('3')
                         reply_message = await event.message.get_reply_message()
+
                         if "TP" in message:
                             tp = message.split("TP")[1].split("\n")[0][3:]
                         else:
@@ -70,19 +71,20 @@ def main():
                         else:
                             sl = None
 
-                        change_tp_ls_order(reply_message.text, tp, sl)
+                        change_tp_ls(reply_message.text, tp, sl)
 
                     elif event.message.photo and event.message.reply_to_msg_id:
                         print('4')
                         reply_message = await event.message.get_reply_message()
                         print(reply_message.text)
-                        close_position(reply_message.text.split(" ")[0][1:] + "USDT")
+                        symbol = extract_symbol(reply_message.text)
+                        close_position(symbol)
 
                     elif "close" in message.lower():
                         print('5')
                         reply_message = await event.message.get_reply_message()
                         print(reply_message.text)
-                        symbol = reply_message.text.split(" ")[0][1:] + "USDT"
+                        symbol = extract_symbol(reply_message.text)
                         close_order_by_symbol(symbol)
 
             except AttributeError:
