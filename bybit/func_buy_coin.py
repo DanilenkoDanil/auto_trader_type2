@@ -118,7 +118,7 @@ def buy_coin_by_limit_price(symbol, side, price):
         orders = [{
             'symbol': symbol,
             'side': side,
-            'order_type': 'Conditional',
+            'order_type': 'Limit',
             'qty': qty,
             'time_in_force': "GTC",
             'price': str(price),
