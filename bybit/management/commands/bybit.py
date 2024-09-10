@@ -80,7 +80,7 @@ def main():
                         symbol = extract_symbol(reply_message.text)
                         close_position(symbol)
 
-                    elif "close" in message.lower():
+                    elif "cancel" in message.lower():
                         print('5')
                         reply_message = await event.message.get_reply_message()
                         print(reply_message.text)
