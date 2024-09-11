@@ -41,22 +41,23 @@ def main():
                     message = str(event.message.message)
                     print(message)
 
-                    if "SHORT" in message or "LONG" in message:
+                    lower_message = message.lower()
+                    if "short" in lower_message or "long" in lower_message:
                         print('2')
                         words = message.split(" ")
 
                         symbol = extract_symbol(message)
 
-                        if "LONG" in message:
+                        if "long" in lower_message:
                             side = "Buy"
                         else:
                             side = "Sell"
 
-                        if len(words) == 3:
+                        if "market" in lower_message:
+                            buy_coin_with_stop_loss(symbol, side)
+                        else:
                             price = float(words[1])
                             buy_coin_by_limit_price(symbol, side, price)
-                        elif len(words) == 2:
-                            buy_coin_with_stop_loss(symbol, side)
 
                     elif event.message.reply_to_msg_id and ("TP" in message or "SL" in message):
                         print('3')
@@ -80,7 +81,7 @@ def main():
                         symbol = extract_symbol(reply_message.text)
                         close_position(symbol)
 
-                    elif "cancel" in message.lower():
+                    elif "cancel" in lower_message:
                         print('5')
                         reply_message = await event.message.get_reply_message()
                         print(reply_message.text)
