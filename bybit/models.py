@@ -6,6 +6,7 @@ class Trader(models.Model):
     api_key = models.CharField(max_length=30)
     api_secret = models.CharField(max_length=45)
     balance = models.DecimalField(decimal_places=2, max_digits=8)
+    settings = models.ForeignKey("Settings", on_delete=models.PROTECT, related_name="settings", null=True)
 
     def __str__(self):
         return f"Username {self.username}"
@@ -20,6 +21,9 @@ class Settings(models.Model):
     demo = models.BooleanField(default=False)
 
     def __str__(self):
+        trader = self.settings.first()
+        if trader:
+            return f"Setting for {trader.username}"
         return f"Setting {self.id}"
 
     class Meta:

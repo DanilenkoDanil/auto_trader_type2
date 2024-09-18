@@ -1,11 +1,13 @@
+from bybit.exception import InvalidLimitPriceException
 from bybit.models import Trader, Settings, EntryPrice
 from pybit.unified_trading import HTTP
 from bybit.utils import extract_symbol, extract_price, extract_side
 
 
 def buy_coin_with_stop_loss(symbol, side):
-    settings = Settings.objects.last()
     for account in Trader.objects.all():
+        settings = account.settings
+        print(settings)
         session = HTTP(
             api_key=account.api_key,
             api_secret=account.api_secret,
@@ -51,6 +53,8 @@ def buy_coin_with_stop_loss(symbol, side):
         }]
 
         order = session.place_batch_order(category='linear', request=orders)
+        check_order_msg(order)
+        print(order)
 
         # Calculate stop loss price
         if side == "Buy":
@@ -76,9 +80,15 @@ def buy_coin_with_stop_loss(symbol, side):
         )
 
 
+def check_order_msg(order):
+    order_msg = order['result']['retExtInfo'][0]['list'][0]['msg']
+    if order_msg != 'OK':
+        raise InvalidLimitPriceException
+
+
 def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
-    settings = Settings.objects.last()
     for account in Trader.objects.all():
+        settings = account.settings
         session = HTTP(
             api_key=account.api_key,
             api_secret=account.api_secret,
@@ -150,6 +160,7 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
         }]
 
         order = session.place_batch_order(category='linear', request=orders)
+        check_order_msg(order)
         print(order)
 
         EntryPrice.objects.create(
@@ -160,11 +171,11 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
 
 
 def close_position(symbol):
-    settings = Settings.objects.last()
-    for user in Trader.objects.all():
+    for account in Trader.objects.all():
+        settings = account.settings
         session = HTTP(
-            api_key=user.api_key,
-            api_secret=user.api_secret,
+            api_key=account.api_key,
+            api_secret=account.api_secret,
             demo=settings.demo
         )
 
@@ -189,15 +200,16 @@ def close_position(symbol):
             'time_in_force': "GTC"
         }]
 
-        session.place_batch_order(category='linear', request=orders)
+        order = session.place_batch_order(category='linear', request=orders)
+        check_order_msg(order)
 
 
 def change_tp_ls(message, tp, sl):
-    settings = Settings.objects.last()
-    for user in Trader.objects.all():
+    for account in Trader.objects.all():
+        settings = account.settings
         session = HTTP(
-            api_key=user.api_key,
-            api_secret=user.api_secret,
+            api_key=account.api_key,
+            api_secret=account.api_secret,
             demo=settings.demo
         )
         symbol = extract_symbol(message)
@@ -214,11 +226,11 @@ def change_tp_ls(message, tp, sl):
 
 
 def change_tp_ls_open_order(message, take_profit, stop_loss):
-    settings = Settings.objects.last()
-    for user in Trader.objects.all():
+    for account in Trader.objects.all():
+        settings = account.settings
         session = HTTP(
-            api_key=user.api_key,
-            api_secret=user.api_secret,
+            api_key=account.api_key,
+            api_secret=account.api_secret,
             demo=settings.demo
         )
 
@@ -244,19 +256,19 @@ def change_tp_ls_open_order(message, take_profit, stop_loss):
 
 
 def close_order_by_symbol(symbol):
-    settings = Settings.objects.last()
-    for user in Trader.objects.all():
+    for account in Trader.objects.all():
+        settings = account.settings
         session = HTTP(
-            api_key=user.api_key,
-            api_secret=user.api_secret,
+            api_key=account.api_key,
+            api_secret=account.api_secret,
             demo=settings.demo
         )
 
-    open_order = session.get_open_orders(category='linear', symbol=symbol)
-    order_id = open_order['result']['list'][0]['orderId']
+        open_order = session.get_open_orders(category='linear', symbol=symbol)
+        order_id = open_order['result']['list'][0]['orderId']
 
-    session.cancel_order(
-        category="linear",
-        symbol=symbol,
-        orderId=order_id
-    )
+        session.cancel_order(
+            category="linear",
+            symbol=symbol,
+            orderId=order_id
+        )

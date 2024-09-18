@@ -1,0 +1,2 @@
+class InvalidLimitPriceException(Exception):
+    pass
