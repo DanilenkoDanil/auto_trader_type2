@@ -6,7 +6,7 @@ class Trader(models.Model):
     api_key = models.CharField(max_length=30)
     api_secret = models.CharField(max_length=45)
     balance = models.DecimalField(decimal_places=2, max_digits=8)
-    settings = models.ForeignKey("Settings", on_delete=models.PROTECT, related_name="settings", null=True)
+    settings = models.ForeignKey("Settings", on_delete=models.PROTECT, related_name="settings")
 
     def __str__(self):
         return f"Username {self.username}"
