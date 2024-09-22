@@ -81,7 +81,7 @@ def buy_coin_with_stop_loss(symbol, side):
 
 
 def check_order_msg(order):
-    order_msg = order['result']['retExtInfo'][0]['list'][0]['msg']
+    order_msg = order['retExtInfo']['list'][0]['msg']
     if order_msg != 'OK':
         raise InvalidLimitPriceException
 
