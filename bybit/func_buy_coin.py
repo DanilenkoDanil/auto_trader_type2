@@ -83,6 +83,7 @@ def buy_coin_with_stop_loss(symbol, side):
 def check_order_msg(order):
     order_msg = order['retExtInfo']['list'][0]['msg']
     if order_msg != 'OK':
+        print(order)
         raise InvalidLimitPriceException
 
 
@@ -180,13 +181,18 @@ def close_position(symbol):
         )
 
         positions = session.get_positions(category="linear", symbol=symbol)
+        positions = positions['result']['list']
+        position_qty = 0
 
-        entry_price = EntryPrice.objects.filter(symbol=symbol).last()
+        for position in positions:
+            position_qty += float(position['size'])
 
-        position_qty = float(positions['result']['list'][0]['size'])
+        if position_qty == 0:
+            return
 
         close_qty = str(round(position_qty, 3))
 
+        entry_price = EntryPrice.objects.filter(symbol=symbol).last()
         if entry_price.side == "Buy":
             close_side = "Sell"
         else:
@@ -265,10 +271,12 @@ def close_order_by_symbol(symbol):
         )
 
         open_order = session.get_open_orders(category='linear', symbol=symbol)
-        order_id = open_order['result']['list'][0]['orderId']
+        orders = open_order['result']['list']
 
-        session.cancel_order(
-            category="linear",
-            symbol=symbol,
-            orderId=order_id
-        )
+        for order in orders:
+            order_id = order['orderId']
+            session.cancel_order(
+                category="linear",
+                symbol=symbol,
+                orderId=order_id
+            )
