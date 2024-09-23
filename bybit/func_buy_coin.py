@@ -231,7 +231,7 @@ def change_tp_ls(message, tp, sl):
             change_tp_ls_open_order(message, tp, sl)
 
 
-def change_tp_ls_open_order(message, take_profit, stop_loss):
+def change_tp_ls_open_order(message, tp, sl):
     for account in Trader.objects.all():
         settings = account.settings
         session = HTTP(
@@ -240,24 +240,41 @@ def change_tp_ls_open_order(message, take_profit, stop_loss):
             demo=settings.demo
         )
 
-        if take_profit is None:
-            take_profit = settings.take_profit_percent
-        if stop_loss is None:
-            stop_loss = settings.stop_loss_percent
-
-        take_profit = float(take_profit)
-        stop_loss = float(stop_loss)
-
         symbol = extract_symbol(message)
         order = session.get_positions(category="linear", symbol=symbol)
         side = order['result']['list'][0]['side']
+        mark_price = float(order['result']['list'][0]['markPrice'])
+
+        print(order)
+
+        if side == "Buy":
+            if tp is not None:
+                take_profit_price = tp
+            else:
+                take_profit_price = mark_price * (1 + settings.take_profit_percent / 100)
+
+            if sl is not None:
+                stop_loss_price = sl
+            else:
+                stop_loss_price = mark_price * (1 - settings.stop_loss_percent / 100)
+
+        else:
+            if tp is not None:
+                take_profit_price = tp
+            else:
+                take_profit_price = mark_price * (1 - settings.take_profit_percent / 100)
+
+            if sl is not None:
+                stop_loss_price = sl
+            else:
+                stop_loss_price = mark_price * (1 + settings.stop_loss_percent / 100)
 
         session.set_trading_stop(
             category='linear',
             symbol=symbol,
             side=side,
-            stop_loss=str(stop_loss),
-            take_profit=str(take_profit),
+            stop_loss=str(stop_loss_price),
+            take_profit=str(take_profit_price),
         )
 
 
