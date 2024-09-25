@@ -37,3 +37,13 @@ def calculate_tp_sl_price(side, price, sett_sl_perc, sett_tp_perc, new_sl, new_t
     trigger_direction = "1" if side == "Buy" else "2"
 
     return stop_loss_price, take_profit_price, trigger_direction
+
+
+def calculate_precision(info):
+    qty_step = info['result']['list'][0]['lotSizeFilter']['qtyStep']
+    if '.' in qty_step:
+        precision = len(qty_step.split('.')[1])
+    else:
+        precision = int(1 / len(qty_step)) - 1
+
+    return precision

@@ -1,9 +1,10 @@
 from bybit.models import Trader, EntryPrice
 from pybit.unified_trading import HTTP
-from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg
+from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg, \
+    calculate_precision
 
 
-def buy_coin_with_stop_loss(symbol, side):
+def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
     for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         print(settings)
@@ -26,16 +27,11 @@ def buy_coin_with_stop_loss(symbol, side):
         market_data = session.get_tickers(category="linear", symbol=symbol)
         market_price = float(market_data['result']['list'][0]['lastPrice'])
 
-        qty_step = session.get_instruments_info(
+        info = session.get_instruments_info(
             category="linear",
             symbol=symbol,
-        )['result']['list'][0]['lotSizeFilter']['qtyStep']
-
-        if '.' in qty_step:
-            precision = len(qty_step.split('.')[1])
-        else:
-            precision = int(1 / len(qty_step)) - 1
-
+        )
+        precision = calculate_precision(info)
         qty = settings.amount_usd / market_price
         qty = str(round(qty, precision))
 
@@ -51,8 +47,15 @@ def buy_coin_with_stop_loss(symbol, side):
         check_order_msg(order)
         print(order)
 
-        stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, market_price,
-                                    settings.stop_loss_percent, settings.take_profit_percent, None, None)
+
+
+        stop_loss_price, take_profit_price, trigger_direction = (
+            calculate_tp_sl_price(side,
+                                  market_price,
+                                  settings.stop_loss_percent,
+                                  settings.take_profit_percent,
+                                  spec_sl if spec_sl is not None else None,
+                                  spec_tp if spec_tp is not None else None))
 
         session.set_trading_stop(
             category='linear',
@@ -67,9 +70,6 @@ def buy_coin_with_stop_loss(symbol, side):
             entry_price=market_price,
             side=side
         )
-
-
-
 
 
 def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
@@ -131,7 +131,7 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
         )
 
 
-def close_position(symbol, stop_exists):
+def close_position(symbol, stop_exists, zpz=False):
     for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         if stop_exists:
@@ -157,7 +157,16 @@ def close_position(symbol, stop_exists):
         if position_qty == 0:
             return
 
-        close_qty = str(round(position_qty, 3))
+        if zpz:
+            position_qty /= 2
+
+        info = session.get_instruments_info(
+            category="linear",
+            symbol=symbol,
+        )
+
+        precision = calculate_precision(info)
+        close_qty = round(position_qty, precision)
 
         entry_price = EntryPrice.objects.filter(symbol=symbol).last()
         if entry_price.side == "Buy":
@@ -174,6 +183,8 @@ def close_position(symbol, stop_exists):
         }]
 
         order = session.place_batch_order(category='linear', request=orders)
+        print("ORDER")
+        print(order)
         check_order_msg(order)
 
         positions = session.get_positions(category="linear", symbol=symbol)
@@ -201,6 +212,24 @@ def change_tp_ls(message, tp, sl):
             buy_coin_by_limit_price(symbol, side, price, tp, sl)
         else:
             change_tp_ls_open_order(message, tp, sl)
+
+
+def change_position_zpz(message):
+    for account in Trader.objects.select_related('settings').all():
+        settings = account.settings
+        session = HTTP(
+            api_key=account.api_key,
+            api_secret=account.api_secret,
+            demo=settings.demo
+        )
+        symbol = extract_symbol(message)
+        position = session.get_positions(category="linear", symbol=symbol)['result']['list'][0]
+        tp = position['takeProfit']
+
+        entry_price = EntryPrice.objects.filter(symbol=symbol).last()
+
+        close_position(symbol, False, True)
+        change_tp_ls_open_order(message, tp, entry_price.entry_price)
 
 
 def change_tp_ls_open_order(message, tp, sl):

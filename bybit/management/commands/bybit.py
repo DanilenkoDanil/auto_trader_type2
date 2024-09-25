@@ -2,7 +2,7 @@ import traceback
 
 from bybit.models import Chat, ErrorLog
 from bybit.func_buy_coin import buy_coin_with_stop_loss, buy_coin_by_limit_price, \
-    change_tp_ls, close_position, close_order_by_symbol
+    change_tp_ls, close_position, close_order_by_symbol, change_position_zpz
 from bybit.utils import extract_symbol, extract_price
 
 from django.core.management.base import BaseCommand
@@ -10,6 +10,7 @@ from telethon.sync import TelegramClient
 from telethon import events
 import os
 import django
+import re
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rest.settings')
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -53,26 +54,28 @@ def main():
                         else:
                             side = "Sell"
 
+                        spec_sl, spec_tp = await extract_tp_sl(lower_message)
+
                         if "market" in lower_message:
-                            buy_coin_with_stop_loss(symbol, side)
+                            buy_coin_with_stop_loss(symbol, side, spec_tp, spec_sl)
                         else:
                             price = float(words[1])
-                            buy_coin_by_limit_price(symbol, side, price)
+                            buy_coin_by_limit_price(symbol, side, price, spec_tp, spec_sl)
 
                     elif event.message.reply_to_msg_id and ("TP" in message or "SL" in message):
                         print('3')
                         reply_message = await event.message.get_reply_message()
 
-                        if "TP" in message:
-                            tp = message.split("TP")[1].split("\n")[0][3:]
-                        else:
-                            tp = None
-                        if "SL" in message:
-                            sl = message.split("SL")[1][3:]
-                        else:
-                            sl = None
+                        sl, tp = await extract_tp_sl(lower_message)
 
                         change_tp_ls(reply_message.text, tp, sl)
+
+                    elif "zpz" in lower_message:
+                        print('6')
+
+                        reply_message = await event.message.get_reply_message()
+
+                        change_position_zpz(reply_message.text)
 
                     elif (event.message.photo or "stop" in lower_message) and event.message.reply_to_msg_id:
                         print('4')
@@ -98,6 +101,14 @@ def main():
             error_message = traceback.format_exc()
             ErrorLog.objects.create(error=error_message)
             # ErrorLog.objects.create(error=str(e))
+
+    async def extract_tp_sl(lower_message):
+        tp_match = re.search(r'tp\s*[-\s]\s*(\d+\.\d+)', lower_message)
+        sl_match = re.search(r'sl\s*[-\s]\s*(\d+\.\d+)', lower_message)
+        spec_tp = float(tp_match.group(1)) if tp_match else None
+        spec_sl = float(sl_match.group(1)) if sl_match else None
+        return spec_sl, spec_tp
+
     client.run_until_disconnected()
 
 
