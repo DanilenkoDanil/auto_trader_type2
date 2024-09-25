@@ -47,8 +47,6 @@ def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
         check_order_msg(order)
         print(order)
 
-
-
         stop_loss_price, take_profit_price, trigger_direction = (
             calculate_tp_sl_price(side,
                                   market_price,
@@ -91,15 +89,11 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
         except Exception:
             pass
 
-        qty_step = session.get_instruments_info(
+        info = session.get_instruments_info(
             category="linear",
             symbol=symbol,
-        )['result']['list'][0]['lotSizeFilter']['qtyStep']
-
-        if '.' in qty_step:
-            precision = len(qty_step.split('.')[1])
-        else:
-            precision = int(1 / len(qty_step)) - 1
+        )
+        precision = calculate_precision(info)
 
         qty = settings.amount_usd / price
         qty = str(round(qty, precision))
@@ -183,14 +177,7 @@ def close_position(symbol, stop_exists, zpz=False):
         }]
 
         order = session.place_batch_order(category='linear', request=orders)
-        print("ORDER")
-        print(order)
         check_order_msg(order)
-
-        positions = session.get_positions(category="linear", symbol=symbol)
-        positions = positions['result']['list']
-        print("POSITIONS")
-        print(positions)
 
 
 def change_tp_ls(message, tp, sl):
