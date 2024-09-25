@@ -17,8 +17,9 @@ class Settings(models.Model):
     take_profit_percent = models.FloatField()
     leverage = models.FloatField()
     amount_usd = models.FloatField()
-    stop_loss_step = models.FloatField()
     demo = models.BooleanField(default=False)
+    close_by_picture = models.BooleanField(default=True)
+    close_by_stop = models.BooleanField(default=True)
 
     def __str__(self):
         trader = self.settings.first()

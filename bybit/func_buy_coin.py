@@ -1,11 +1,10 @@
-from bybit.exception import InvalidLimitPriceException
-from bybit.models import Trader, Settings, EntryPrice
+from bybit.models import Trader, EntryPrice
 from pybit.unified_trading import HTTP
-from bybit.utils import extract_symbol, extract_price, extract_side
+from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg
 
 
 def buy_coin_with_stop_loss(symbol, side):
-    for account in Trader.objects.all():
+    for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         print(settings)
         session = HTTP(
@@ -15,7 +14,6 @@ def buy_coin_with_stop_loss(symbol, side):
         )
 
         try:
-            # Set leverage
             session.set_leverage(
                 category="linear",
                 symbol=symbol,
@@ -25,11 +23,9 @@ def buy_coin_with_stop_loss(symbol, side):
         except Exception:
             pass
 
-        # Get current market price
         market_data = session.get_tickers(category="linear", symbol=symbol)
         market_price = float(market_data['result']['list'][0]['lastPrice'])
 
-        # print(market_data['result']['list'])
         qty_step = session.get_instruments_info(
             category="linear",
             symbol=symbol,
@@ -40,7 +36,6 @@ def buy_coin_with_stop_loss(symbol, side):
         else:
             precision = int(1 / len(qty_step)) - 1
 
-        # Calculate quantity to buy based on amount in USD
         qty = settings.amount_usd / market_price
         qty = str(round(qty, precision))
 
@@ -56,15 +51,9 @@ def buy_coin_with_stop_loss(symbol, side):
         check_order_msg(order)
         print(order)
 
-        # Calculate stop loss price
-        if side == "Buy":
-            stop_loss_price = market_price * (1 - settings.stop_loss_percent / 100)
-            take_profit_price = market_price * (1 + settings.take_profit_percent / 100)
-        else:
-            stop_loss_price = market_price * (1 + settings.stop_loss_percent / 100)
-            take_profit_price = market_price * (1 - settings.take_profit_percent / 100)
+        stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, market_price,
+                                    settings.stop_loss_percent, settings.take_profit_percent, None, None)
 
-        # Place stop loss order
         session.set_trading_stop(
             category='linear',
             symbol=symbol,
@@ -80,15 +69,11 @@ def buy_coin_with_stop_loss(symbol, side):
         )
 
 
-def check_order_msg(order):
-    order_msg = order['retExtInfo']['list'][0]['msg']
-    if order_msg != 'OK':
-        print(order)
-        raise InvalidLimitPriceException
+
 
 
 def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
-    for account in Trader.objects.all():
+    for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         session = HTTP(
             api_key=account.api_key,
@@ -97,7 +82,6 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
         )
 
         try:
-            # Set leverage
             session.set_leverage(
                 category="linear",
                 symbol=symbol,
@@ -117,35 +101,11 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
         else:
             precision = int(1 / len(qty_step)) - 1
 
-        # Calculate quantity to buy based on amount in USD
         qty = settings.amount_usd / price
         qty = str(round(qty, precision))
 
-        print(side)
-
-        if side == "Buy":
-            if tp is not None:
-                take_profit_price = tp
-            else:
-                take_profit_price = price * (1 + settings.take_profit_percent / 100)
-
-            if sl is not None:
-                stop_loss_price = sl
-            else:
-                stop_loss_price = price * (1 - settings.stop_loss_percent / 100)
-
-            triggerDirection = "1"
-        else:
-            if tp is not None:
-                take_profit_price = tp
-            else:
-                take_profit_price = price * (1 - settings.take_profit_percent / 100)
-
-            if sl is not None:
-                stop_loss_price = sl
-            else:
-                stop_loss_price = price * (1 + settings.stop_loss_percent / 100)
-            triggerDirection = "2"
+        stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, price,
+                                                    settings.stop_loss_percent, settings.take_profit_percent, sl, tp)
 
         orders = [{
             'symbol': symbol,
@@ -156,7 +116,7 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
             'price': str(price),
             'stopLoss': str(stop_loss_price),
             "takeProfit": str(take_profit_price),
-            "triggerDirection": triggerDirection,
+            "triggerDirection": trigger_direction,
             "triggerPrice": str(price),
         }]
 
@@ -171,9 +131,16 @@ def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
         )
 
 
-def close_position(symbol):
-    for account in Trader.objects.all():
+def close_position(symbol, stop_exists):
+    for account in Trader.objects.select_related('settings').all():
         settings = account.settings
+        if stop_exists:
+            if not settings.close_by_stop:
+                continue
+        else:
+            if not settings.close_by_picture:
+                continue
+
         session = HTTP(
             api_key=account.api_key,
             api_secret=account.api_secret,
@@ -209,9 +176,14 @@ def close_position(symbol):
         order = session.place_batch_order(category='linear', request=orders)
         check_order_msg(order)
 
+        positions = session.get_positions(category="linear", symbol=symbol)
+        positions = positions['result']['list']
+        print("POSITIONS")
+        print(positions)
+
 
 def change_tp_ls(message, tp, sl):
-    for account in Trader.objects.all():
+    for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         session = HTTP(
             api_key=account.api_key,
@@ -232,7 +204,7 @@ def change_tp_ls(message, tp, sl):
 
 
 def change_tp_ls_open_order(message, tp, sl):
-    for account in Trader.objects.all():
+    for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         session = HTTP(
             api_key=account.api_key,
@@ -247,27 +219,8 @@ def change_tp_ls_open_order(message, tp, sl):
 
         print(order)
 
-        if side == "Buy":
-            if tp is not None:
-                take_profit_price = tp
-            else:
-                take_profit_price = mark_price * (1 + settings.take_profit_percent / 100)
-
-            if sl is not None:
-                stop_loss_price = sl
-            else:
-                stop_loss_price = mark_price * (1 - settings.stop_loss_percent / 100)
-
-        else:
-            if tp is not None:
-                take_profit_price = tp
-            else:
-                take_profit_price = mark_price * (1 - settings.take_profit_percent / 100)
-
-            if sl is not None:
-                stop_loss_price = sl
-            else:
-                stop_loss_price = mark_price * (1 + settings.stop_loss_percent / 100)
+        stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, mark_price,
+                                                 settings.stop_loss_percent, settings.take_profit_percent, sl, tp)
 
         session.set_trading_stop(
             category='linear',
@@ -279,7 +232,7 @@ def change_tp_ls_open_order(message, tp, sl):
 
 
 def close_order_by_symbol(symbol):
-    for account in Trader.objects.all():
+    for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         session = HTTP(
             api_key=account.api_key,

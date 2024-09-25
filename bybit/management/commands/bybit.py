@@ -74,12 +74,15 @@ def main():
 
                         change_tp_ls(reply_message.text, tp, sl)
 
-                    elif event.message.photo and event.message.reply_to_msg_id:
+                    elif (event.message.photo or "stop" in lower_message) and event.message.reply_to_msg_id:
                         print('4')
                         reply_message = await event.message.get_reply_message()
                         print(reply_message.text)
                         symbol = extract_symbol(reply_message.text)
-                        close_position(symbol)
+                        stop_exists = False
+                        if "stop" in lower_message:
+                            stop_exists = True
+                        close_position(symbol, stop_exists)
 
                     elif "cancel" in lower_message:
                         print('5')
