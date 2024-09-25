@@ -201,7 +201,7 @@ def change_tp_ls(message, tp, sl):
             change_tp_ls_open_order(message, tp, sl)
 
 
-def change_position_zpz(message):
+def change_position_zpz(message, close_by_image=False):
     for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         session = HTTP(
@@ -215,7 +215,9 @@ def change_position_zpz(message):
 
         entry_price = EntryPrice.objects.filter(symbol=symbol).last()
 
-        close_position(symbol, False, True)
+        if close_by_image:
+            close_position(symbol, False, True)
+
         change_tp_ls_open_order(message, tp, entry_price.entry_price)
 
 

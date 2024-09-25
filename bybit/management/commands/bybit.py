@@ -43,6 +43,7 @@ def main():
                     print(message)
 
                     lower_message = message.lower()
+
                     if "short" in lower_message or "long" in lower_message:
                         print('2')
                         words = message.split(" ")
@@ -69,6 +70,13 @@ def main():
                         sl, tp = await extract_tp_sl(lower_message)
 
                         change_tp_ls(reply_message.text, tp, sl)
+
+                    elif "zpz" in lower_message and event.message.photo:
+                        print('7')
+
+                        reply_message = await event.message.get_reply_message()
+
+                        change_position_zpz(reply_message.text, True)
 
                     elif "zpz" in lower_message:
                         print('6')
