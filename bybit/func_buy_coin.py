@@ -160,7 +160,7 @@ def close_position(symbol, stop_exists, zpz=False):
         )
 
         precision = calculate_precision(info)
-        close_qty = round(position_qty, precision)
+        close_qty = str(round(position_qty, precision))
 
         entry_price = EntryPrice.objects.filter(symbol=symbol).last()
         if entry_price.side == "Buy":
