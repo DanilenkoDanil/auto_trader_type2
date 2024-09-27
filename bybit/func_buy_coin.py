@@ -1,4 +1,6 @@
-from bybit.models import Trader, EntryPrice
+import traceback
+
+from bybit.models import Trader, EntryPrice, ErrorLog
 from pybit.unified_trading import HTTP
 from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg, \
     calculate_precision
@@ -264,10 +266,14 @@ def close_order_by_symbol(symbol):
         open_order = session.get_open_orders(category='linear', symbol=symbol)
         orders = open_order['result']['list']
 
-        for order in orders:
-            order_id = order['orderId']
-            session.cancel_order(
-                category="linear",
-                symbol=symbol,
-                orderId=order_id
-            )
+        try:
+            for order in orders:
+                order_id = order['orderId']
+                session.cancel_order(
+                    category="linear",
+                    symbol=symbol,
+                    orderId=order_id
+                )
+        except:
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
