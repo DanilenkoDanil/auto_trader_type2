@@ -154,6 +154,8 @@ def close_position(symbol, stop_exists, zpz=False):
         if zpz:
             position_qty /= 2
 
+        side = positions[0]['side']
+
         info = session.get_instruments_info(
             category="linear",
             symbol=symbol,
@@ -162,8 +164,7 @@ def close_position(symbol, stop_exists, zpz=False):
         precision = calculate_precision(info)
         close_qty = str(round(position_qty, precision))
 
-        entry_price = EntryPrice.objects.filter(symbol=symbol).last()
-        if entry_price.side == "Buy":
+        if side == "Buy":
             close_side = "Sell"
         else:
             close_side = "Buy"
@@ -175,6 +176,8 @@ def close_position(symbol, stop_exists, zpz=False):
             'qty': close_qty,
             'time_in_force': "GTC"
         }]
+
+        print(orders)
 
         order = session.place_batch_order(category='linear', request=orders)
         check_order_msg(order)

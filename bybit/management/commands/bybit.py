@@ -111,8 +111,8 @@ def main():
             # ErrorLog.objects.create(error=str(e))
 
     async def extract_tp_sl(lower_message):
-        tp_match = re.search(r'tp\s*[-\s]\s*(\d+\.\d+)', lower_message)
-        sl_match = re.search(r'sl\s*[-\s]\s*(\d+\.\d+)', lower_message)
+        tp_match = re.search(r'tp\s*[-\s]\s*(\d+\.?\d+)', lower_message)
+        sl_match = re.search(r'sl\s*[-\s]\s*(\d+\.?\d+)', lower_message)
         spec_tp = float(tp_match.group(1)) if tp_match else None
         spec_sl = float(sl_match.group(1)) if sl_match else None
         return spec_sl, spec_tp
