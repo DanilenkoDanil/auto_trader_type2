@@ -2,7 +2,7 @@ import traceback
 
 from bybit.models import Chat, ErrorLog
 from bybit.func_buy_coin import buy_coin_with_stop_loss, buy_coin_by_limit_price, \
-    change_tp_ls, close_position, close_order_by_symbol, change_position_zpz
+    change_tp_ls, close_position, close_order_by_symbol, change_position_zpz, close_position_for_all_traders
 from bybit.utils import extract_symbol, extract_price
 
 from django.core.management.base import BaseCommand
@@ -93,7 +93,7 @@ def main():
                         stop_exists = False
                         if "stop" in lower_message:
                             stop_exists = True
-                        close_position(symbol, stop_exists)
+                        close_position_for_all_traders(symbol, stop_exists)
 
                     elif "cancel" in lower_message:
                         print('5')

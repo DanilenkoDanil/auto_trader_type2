@@ -3,7 +3,7 @@ import traceback
 from bybit.models import Trader, EntryPrice, ErrorLog
 from pybit.unified_trading import HTTP
 from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg, \
-    calculate_precision
+    calculate_precision, extract_position_qty
 
 
 def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
@@ -127,62 +127,71 @@ def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
     )
 
 
-def close_position(symbol, stop_exists, zpz=False):
+def close_position_for_all_traders(symbol, stop_exists, zpz=False):
     for account in Trader.objects.select_related('settings').all():
         settings = account.settings
-        if stop_exists:
-            if not settings.close_by_stop:
-                continue
-        else:
-            if not settings.close_by_picture:
-                continue
-
         session = HTTP(
             api_key=account.api_key,
             api_secret=account.api_secret,
             demo=settings.demo
         )
 
-        positions = session.get_positions(category="linear", symbol=symbol)
-        positions = positions['result']['list']
-        position_qty = 0
+        close_position(account, symbol, stop_exists, zpz)
 
-        for position in positions:
-            position_qty += float(position['size'])
 
-        if position_qty == 0:
+def close_position(account, symbol, stop_exists, zpz=False):
+    settings = account.settings
+    if stop_exists:
+        if not settings.close_by_stop:
+            return
+    else:
+        if not settings.close_by_picture:
             return
 
-        if zpz:
-            position_qty /= 2
+    session = HTTP(
+        api_key=account.api_key,
+        api_secret=account.api_secret,
+        demo=settings.demo
+    )
 
-        side = positions[0]['side']
+    positions = session.get_positions(category="linear", symbol=symbol)
 
-        info = session.get_instruments_info(
-            category="linear",
-            symbol=symbol,
-        )
+    print(positions)
+    position_qty = extract_position_qty(positions)
 
-        precision = calculate_precision(info)
-        close_qty = str(round(position_qty, precision))
+    if position_qty == 0:
+        return
 
-        if side == "Buy":
-            close_side = "Sell"
-        else:
-            close_side = "Buy"
+    if zpz:
+        position_qty /= 2
 
-        orders = [{
-            'symbol': symbol,
-            'side': close_side,
-            'order_type': 'Market',
-            'qty': close_qty,
-            'time_in_force': "GTC"
-        }]
+    side = positions['result']['list'][0]['side']
 
-        print(orders)
+    info = session.get_instruments_info(
+        category="linear",
+        symbol=symbol,
+    )
 
-        order = session.place_batch_order(category='linear', request=orders)
-        check_order_msg(order)
+    precision = calculate_precision(info)
+    close_qty = str(round(position_qty, precision))
+
+    if side == "Buy":
+        close_side = "Sell"
+    else:
+        close_side = "Buy"
+
+    orders = [{
+        'symbol': symbol,
+        'side': close_side,
+        'order_type': 'Market',
+        'qty': close_qty,
+        'time_in_force': "GTC"
+    }]
+
+    print(orders)
+
+    order = session.place_batch_order(category='linear', request=orders)
+    check_order_msg(order)
 
 
 def change_tp_ls(message, tp, sl):
@@ -221,7 +230,7 @@ def change_position_zpz(message, close_by_image=False):
         entry_price = EntryPrice.objects.filter(symbol=symbol).last()
 
         if close_by_image:
-            close_position(symbol, False, True)
+            close_position(account, symbol, False, True)
 
         change_tp_ls_open_order(account, message, tp, entry_price.entry_price)
 

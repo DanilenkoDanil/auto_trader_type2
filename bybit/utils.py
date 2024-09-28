@@ -47,3 +47,11 @@ def calculate_precision(info):
         precision = int(1 / len(qty_step)) - 1
 
     return precision
+
+
+def extract_position_qty(positions):
+    positions = positions['result']['list']
+    position_qty = 0
+    for position in positions:
+        position_qty += float(position['size'])
+    return position_qty
