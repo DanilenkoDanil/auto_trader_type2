@@ -127,16 +127,9 @@ def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
     )
 
 
-def close_position_for_all_traders(symbol, stop_exists, zpz=False):
+def close_position_for_all_traders(symbol, stop_exists):
     for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
-
-        close_position(account, symbol, stop_exists, zpz)
+        close_position(account, symbol, stop_exists)
 
 
 def close_position(account, symbol, stop_exists, zpz=False):
