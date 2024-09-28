@@ -72,59 +72,59 @@ def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
         )
 
 
-def buy_coin_by_limit_price(symbol, side, price, tp=None, sl=None):
-    for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
+def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
+    settings = account.settings
+    session = HTTP(
+        api_key=account.api_key,
+        api_secret=account.api_secret,
+        demo=settings.demo
+    )
 
-        try:
-            session.set_leverage(
-                category="linear",
-                symbol=symbol,
-                buyLeverage=str(int(settings.leverage)),
-                sellLeverage=str(int(settings.leverage)),
-            )
-        except Exception:
-            pass
-
-        info = session.get_instruments_info(
+    try:
+        session.set_leverage(
             category="linear",
             symbol=symbol,
+            buyLeverage=str(int(settings.leverage)),
+            sellLeverage=str(int(settings.leverage)),
         )
-        precision = calculate_precision(info)
+    except Exception:
+        pass
 
-        qty = settings.amount_usd / price
-        qty = str(round(qty, precision))
+    info = session.get_instruments_info(
+        category="linear",
+        symbol=symbol,
+    )
+    precision = calculate_precision(info)
 
-        stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, price,
-                                                    settings.stop_loss_percent, settings.take_profit_percent, sl, tp)
+    qty = settings.amount_usd / price
+    qty = str(round(qty, precision))
 
-        orders = [{
-            'symbol': symbol,
-            'side': side,
-            'order_type': 'Limit',
-            'qty': qty,
-            'time_in_force': "GTC",
-            'price': str(price),
-            'stopLoss': str(stop_loss_price),
-            "takeProfit": str(take_profit_price),
-            "triggerDirection": trigger_direction,
-            "triggerPrice": str(price),
-        }]
+    stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, price,
+                                                                                  settings.stop_loss_percent,
+                                                                                  settings.take_profit_percent, sl, tp)
 
-        order = session.place_batch_order(category='linear', request=orders)
-        check_order_msg(order)
-        print(order)
+    orders = [{
+        'symbol': symbol,
+        'side': side,
+        'order_type': 'Limit',
+        'qty': qty,
+        'time_in_force': "GTC",
+        'price': str(price),
+        'stopLoss': str(stop_loss_price),
+        "takeProfit": str(take_profit_price),
+        "triggerDirection": trigger_direction,
+        "triggerPrice": str(price),
+    }]
 
-        EntryPrice.objects.create(
-            symbol=symbol,
-            entry_price=price,
-            side=side
-        )
+    order = session.place_batch_order(category='linear', request=orders)
+    check_order_msg(order)
+    print(order)
+
+    EntryPrice.objects.create(
+        symbol=symbol,
+        entry_price=price,
+        side=side
+    )
 
 
 def close_position(symbol, stop_exists, zpz=False):
@@ -201,9 +201,9 @@ def change_tp_ls(message, tp, sl):
         if float(size) == 0:
             price = extract_price(message)
             close_order_by_symbol(symbol)
-            buy_coin_by_limit_price(symbol, side, price, tp, sl)
+            buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
         else:
-            change_tp_ls_open_order(message, tp, sl)
+            change_tp_ls_open_order(account, message, tp, sl)
 
 
 def change_position_zpz(message, close_by_image=False):
@@ -223,35 +223,36 @@ def change_position_zpz(message, close_by_image=False):
         if close_by_image:
             close_position(symbol, False, True)
 
-        change_tp_ls_open_order(message, tp, entry_price.entry_price)
+        change_tp_ls_open_order(account, message, tp, entry_price.entry_price)
 
 
-def change_tp_ls_open_order(message, tp, sl):
-    for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
+def change_tp_ls_open_order(account, message, tp, sl):
+    settings = account.settings
+    session = HTTP(
+        api_key=account.api_key,
+        api_secret=account.api_secret,
+        demo=settings.demo
+    )
 
-        symbol = extract_symbol(message)
-        order = session.get_positions(category="linear", symbol=symbol)
-        side = order['result']['list'][0]['side']
-        mark_price = float(order['result']['list'][0]['markPrice'])
+    symbol = extract_symbol(message)
+    order = session.get_positions(category="linear", symbol=symbol)
+    side = order['result']['list'][0]['side']
+    mark_price = float(order['result']['list'][0]['markPrice'])
 
-        print(order)
+    print(order)
 
-        stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, mark_price,
-                                                 settings.stop_loss_percent, settings.take_profit_percent, sl, tp)
+    stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, mark_price,
+                                                                                  settings.stop_loss_percent,
+                                                                                  settings.take_profit_percent, sl,
+                                                                                  tp)
 
-        session.set_trading_stop(
-            category='linear',
-            symbol=symbol,
-            side=side,
-            stop_loss=str(stop_loss_price),
-            take_profit=str(take_profit_price),
-        )
+    session.set_trading_stop(
+        category='linear',
+        symbol=symbol,
+        side=side,
+        stop_loss=str(stop_loss_price),
+        take_profit=str(take_profit_price),
+    )
 
 
 def close_order_by_symbol(symbol):
