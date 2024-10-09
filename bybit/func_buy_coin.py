@@ -196,7 +196,7 @@ def change_tp_ls(message, tp, sl):
     for account in Trader.objects.select_related('settings').all():
         settings = account.settings
         if not settings.close_by_picture:
-            return
+            continue
 
         session = HTTP(
             api_key=account.api_key,
