@@ -137,6 +137,11 @@ def close_position_for_all_traders(symbol, stop_exists):
         close_position(account, symbol, stop_exists)
 
 
+def close_order_for_all_traders(symbol):
+    for account in Trader.objects.select_related('settings').all():
+        close_order_by_symbol(account, symbol)
+
+
 def close_position(account, symbol, stop_exists, zpz=False):
     settings = account.settings
     if stop_exists:
@@ -210,7 +215,7 @@ def change_tp_ls(message, tp, sl):
 
         if float(size) == 0:
             price = extract_price(message)
-            close_order_by_symbol(symbol)
+            close_order_by_symbol(account, symbol)
             buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
         else:
             change_tp_ls_open_order(account, message, tp, sl)
@@ -265,26 +270,25 @@ def change_tp_ls_open_order(account, message, tp, sl):
     )
 
 
-def close_order_by_symbol(symbol):
-    for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
+def close_order_by_symbol(account, symbol):
+    settings = account.settings
+    session = HTTP(
+        api_key=account.api_key,
+        api_secret=account.api_secret,
+        demo=settings.demo
+    )
 
-        open_order = session.get_open_orders(category='linear', symbol=symbol)
-        orders = open_order['result']['list']
+    open_order = session.get_open_orders(category='linear', symbol=symbol)
+    orders = open_order['result']['list']
 
-        try:
-            for order in orders:
-                order_id = order['orderId']
-                session.cancel_order(
-                    category="linear",
-                    symbol=symbol,
-                    orderId=order_id
-                )
-        except:
-            error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+    try:
+        for order in orders:
+            order_id = order['orderId']
+            session.cancel_order(
+                category="linear",
+                symbol=symbol,
+                orderId=order_id
+            )
+    except:
+        error_message = traceback.format_exc()
+        ErrorLog.objects.create(error=error_message)

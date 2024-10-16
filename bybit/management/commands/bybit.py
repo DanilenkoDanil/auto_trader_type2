@@ -2,7 +2,8 @@ import traceback
 
 from bybit.models import Chat, ErrorLog
 from bybit.func_buy_coin import buy_coin_with_stop_loss, buy_coin_by_limit_price_for_all_traders, \
-    change_tp_ls, close_position, close_order_by_symbol, change_position_zpz, close_position_for_all_traders
+    change_tp_ls, change_position_zpz, close_position_for_all_traders, \
+    close_order_for_all_traders
 from bybit.utils import extract_symbol, extract_price
 
 from django.core.management.base import BaseCommand
@@ -100,7 +101,7 @@ def main():
                         reply_message = await event.message.get_reply_message()
                         print(reply_message.text)
                         symbol = extract_symbol(reply_message.text)
-                        close_order_by_symbol(symbol)
+                        close_order_for_all_traders(symbol)
 
             except AttributeError:
                 error_message = traceback.format_exc()
