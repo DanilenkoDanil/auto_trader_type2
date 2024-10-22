@@ -102,6 +102,7 @@ def main():
                         print(reply_message.text)
                         symbol = extract_symbol(reply_message.text)
                         close_order_for_all_traders(symbol)
+                        close_position_for_all_traders(symbol, False)
 
             except AttributeError:
                 error_message = traceback.format_exc()
