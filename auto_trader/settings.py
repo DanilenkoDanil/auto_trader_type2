@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     "167.71.11.96",
     "127.0.0.1"
 ]
-
+CSRF_TRUSTED_ORIGINS = ['https://av.baysmooth.com']
 
 # Application definition
 
