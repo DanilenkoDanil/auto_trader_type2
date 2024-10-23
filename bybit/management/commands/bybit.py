@@ -1,6 +1,6 @@
 import traceback
 
-from bybit.models import Chat, ErrorLog
+from bybit.models import Chat, ErrorLog, GlobalSetting
 from bybit.func_buy_coin import buy_coin_with_stop_loss, buy_coin_by_limit_price_for_all_traders, \
     change_tp_ls, change_position_zpz, close_position_for_all_traders, \
     close_order_for_all_traders
@@ -30,6 +30,9 @@ def main():
 
     @client.on(events.NewMessage())
     async def handler_first(event):
+        if not GlobalSetting.objects.last().reaction:
+            return
+
         try:
             chats_list = []
             for chat in Chat.objects.all():

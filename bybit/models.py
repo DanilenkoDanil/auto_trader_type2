@@ -1,16 +1,21 @@
 from django.db import models
+from django.template.defaultfilters import default
 
 
 class Trader(models.Model):
     username = models.CharField(max_length=10)
     api_key = models.CharField(max_length=30)
     api_secret = models.CharField(max_length=45)
-    balance = models.DecimalField(decimal_places=2, max_digits=8)
+    balance = models.DecimalField(decimal_places=8, max_digits=20)
     settings = models.ForeignKey("Settings", on_delete=models.PROTECT, related_name="settings")
 
     def __str__(self):
         return f"Username {self.username}"
 
+
+class GlobalSetting(models.Model):
+    switch_rejection = models.FloatField(default=10)
+    reaction = models.BooleanField(default=True)
 
 class Settings(models.Model):
     stop_loss_percent = models.FloatField()
@@ -20,6 +25,7 @@ class Settings(models.Model):
     demo = models.BooleanField(default=False)
     close_by_picture = models.BooleanField(default=True)
     close_by_stop = models.BooleanField(default=True)
+
 
     def __str__(self):
         trader = self.settings.first()
