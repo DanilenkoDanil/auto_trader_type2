@@ -234,11 +234,27 @@ def change_position_zpz(message, close_by_image=False):
         tp = position['takeProfit']
 
         entry_price = EntryPrice.objects.filter(symbol=symbol).last()
+        side = entry_price.side
+        entry_price = entry_price.entry_price
+
+        info = session.get_instruments_info(
+            category="linear",
+            symbol=symbol,
+        )
+
+        precision = calculate_precision(info)
+
+        if side == "Buy":
+            sl = entry_price * 1.01
+        else:
+            sl = entry_price * 0.99
+
+        sl = round(sl, precision)
 
         if close_by_image:
             close_position(account, symbol, False, True)
 
-        change_tp_ls_open_order(account, message, tp, entry_price.entry_price)
+        change_tp_ls_open_order(account, message, tp, sl)
 
 
 def change_tp_ls_open_order(account, message, tp, sl):
