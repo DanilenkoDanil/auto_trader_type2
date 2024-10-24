@@ -308,3 +308,22 @@ def close_order_by_symbol(account, symbol):
     except:
         error_message = traceback.format_exc()
         ErrorLog.objects.create(error=error_message)
+
+
+def get_positions_symbols_for_trader(account):
+    settings = account.settings
+    session = HTTP(
+        api_key=account.api_key,
+        api_secret=account.api_secret,
+        demo=settings.demo
+    )
+
+    positions = session.get_positions(category="linear", settleCoin="USDT")['result']['list']
+    print(session.get_positions(category="linear", settleCoin="USDT"))
+    symbols = []
+    for position in positions:
+        symbol = position['symbol']
+        if not symbols.__contains__(symbol):
+            symbols.append(symbol)
+
+    return symbols
