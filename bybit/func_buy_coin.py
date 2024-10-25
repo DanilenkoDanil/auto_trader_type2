@@ -212,26 +212,29 @@ def close_position(account, symbol, stop_exists, zpz=False):
 
 def change_tp_ls(message, tp, sl):
     for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        if not settings.close_by_picture:
-            continue
+        try:
+            settings = account.settings
+            if not settings.close_by_picture:
+                continue
 
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
-        symbol = extract_symbol(message)
-        order = session.get_positions(category="linear", symbol=symbol)
-        side = extract_side(message)
-        size = order['result']['list'][0]['size']
+            session = HTTP(
+                api_key=account.api_key,
+                api_secret=account.api_secret,
+                demo=settings.demo
+            )
+            symbol = extract_symbol(message)
+            order = session.get_positions(category="linear", symbol=symbol)
+            side = extract_side(message)
+            size = order['result']['list'][0]['size']
 
-        if float(size) == 0:
-            price = extract_price(message)
-            close_order_by_symbol(account, symbol)
-            buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
-        else:
-            change_tp_ls_open_order(account, message, tp, sl)
+            if float(size) == 0:
+                price = extract_price(message)
+                close_order_by_symbol(account, symbol)
+                buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
+            else:
+                change_tp_ls_open_order(account, message, tp, sl)
+        except FailedRequestError:
+            pass
 
 
 def change_position_zpz(message, close_by_image=False):
