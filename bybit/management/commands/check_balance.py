@@ -19,7 +19,7 @@ django.setup()
 def main():
     while True:
         print('Start')
-        for account in Trader.objects.select_related('settings').all():
+        for account in Trader.objects.select_related('settings').filter(settings__demo=False):
             try:
                 settings = account.settings
                 session = HTTP(
@@ -40,14 +40,14 @@ def main():
                 print(str(balanc2e) + " " + str(account))
 
                 # check_balance(account, total_balance)
-                check_balance(account, balanc1e)
+                check_balance(account, total_balance)
 
                 current = datetime.now()
                 start = time(23, 30)
                 end = time(23, 59)
 
                 if start <= current.time() <= end:
-                    write_balance(balanc1e, account.username)
+                    write_balance(total_balance, account.username)
             except Exception as e:
                 # print(str(e))
                 error_message = traceback.format_exc()
