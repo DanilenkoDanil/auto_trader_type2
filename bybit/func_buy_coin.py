@@ -3,7 +3,7 @@ import traceback
 from bybit.models import Trader, EntryPrice, ErrorLog
 from pybit.unified_trading import HTTP
 from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg, \
-    calculate_precision, extract_position_qty
+    calculate_precision, extract_position_qty, calculate_precision_for_price
 
 
 def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
@@ -242,7 +242,9 @@ def change_position_zpz(message, close_by_image=False):
             symbol=symbol,
         )
 
-        precision = calculate_precision(info)
+        print(info)
+
+        precision = calculate_precision_for_price(info)
 
         if side == "Buy":
             sl = entry_price * 1.01

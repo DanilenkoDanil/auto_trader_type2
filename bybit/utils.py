@@ -49,6 +49,16 @@ def calculate_precision(info):
     return precision
 
 
+def calculate_precision_for_price(info):
+    qty_step = info['result']['list'][0]['priceFilter']['tickSize']
+    if '.' in qty_step:
+        precision = len(qty_step.split('.')[1])
+    else:
+        precision = int(1 / len(qty_step)) - 1
+
+    return precision
+
+
 def extract_position_qty(positions):
     positions = positions['result']['list']
     position_qty = 0
