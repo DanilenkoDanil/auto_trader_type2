@@ -130,7 +130,10 @@ def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
 
 def buy_coin_by_limit_price_for_all_traders(symbol, side, price, tp=None, sl=None):
     for account in Trader.objects.select_related('settings').all():
-        buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
+        try:
+            buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
+        except FailedRequestError:
+            pass
 
 
 def close_position_for_all_traders(symbol, stop_exists):
@@ -143,7 +146,10 @@ def close_position_for_all_traders(symbol, stop_exists):
 
 def close_order_for_all_traders(symbol):
     for account in Trader.objects.select_related('settings').all():
-        close_order_by_symbol(account, symbol)
+        try:
+            close_order_by_symbol(account, symbol)
+        except FailedRequestError:
+            pass
 
 
 def close_position(account, symbol, stop_exists, zpz=False):
