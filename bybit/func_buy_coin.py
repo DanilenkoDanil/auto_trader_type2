@@ -9,68 +9,71 @@ from bybit.utils import extract_symbol, extract_price, extract_side, calculate_t
 
 def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
     for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        print(settings)
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
-
         try:
-            session.set_leverage(
+            settings = account.settings
+            print(settings)
+            session = HTTP(
+                api_key=account.api_key,
+                api_secret=account.api_secret,
+                demo=settings.demo
+            )
+
+            try:
+                session.set_leverage(
+                    category="linear",
+                    symbol=symbol,
+                    buyLeverage=str(int(settings.leverage)),
+                    sellLeverage=str(int(settings.leverage)),
+                )
+            except Exception:
+                pass
+
+            market_data = session.get_tickers(category="linear", symbol=symbol)
+            market_price = float(market_data['result']['list'][0]['lastPrice'])
+
+            info = session.get_instruments_info(
                 category="linear",
                 symbol=symbol,
-                buyLeverage=str(int(settings.leverage)),
-                sellLeverage=str(int(settings.leverage)),
             )
-        except Exception:
+            precision = calculate_precision(info)
+            qty = settings.amount_usd / market_price
+            qty = str(round(qty, precision))
+
+            orders = [{
+                'symbol': symbol,
+                'side': side,
+                'order_type': 'Market',
+                'qty': qty,
+                'time_in_force': "GTC"
+            }]
+
+            order = session.place_batch_order(category='linear', request=orders)
+            check_order_msg(order)
+            print(order)
+
+            stop_loss_price, take_profit_price, trigger_direction = (
+                calculate_tp_sl_price(side,
+                                      market_price,
+                                      settings.stop_loss_percent,
+                                      settings.take_profit_percent,
+                                      spec_sl if spec_sl is not None else None,
+                                      spec_tp if spec_tp is not None else None))
+
+            session.set_trading_stop(
+                category='linear',
+                symbol=symbol,
+                side=side,
+                stop_loss=str(stop_loss_price),
+                take_profit=str(take_profit_price)
+            )
+
+            EntryPrice.objects.create(
+                symbol=symbol,
+                entry_price=market_price,
+                side=side
+            )
+        except FailedRequestError:
             pass
-
-        market_data = session.get_tickers(category="linear", symbol=symbol)
-        market_price = float(market_data['result']['list'][0]['lastPrice'])
-
-        info = session.get_instruments_info(
-            category="linear",
-            symbol=symbol,
-        )
-        precision = calculate_precision(info)
-        qty = settings.amount_usd / market_price
-        qty = str(round(qty, precision))
-
-        orders = [{
-            'symbol': symbol,
-            'side': side,
-            'order_type': 'Market',
-            'qty': qty,
-            'time_in_force': "GTC"
-        }]
-
-        order = session.place_batch_order(category='linear', request=orders)
-        check_order_msg(order)
-        print(order)
-
-        stop_loss_price, take_profit_price, trigger_direction = (
-            calculate_tp_sl_price(side,
-                                  market_price,
-                                  settings.stop_loss_percent,
-                                  settings.take_profit_percent,
-                                  spec_sl if spec_sl is not None else None,
-                                  spec_tp if spec_tp is not None else None))
-
-        session.set_trading_stop(
-            category='linear',
-            symbol=symbol,
-            side=side,
-            stop_loss=str(stop_loss_price),
-            take_profit=str(take_profit_price)
-        )
-
-        EntryPrice.objects.create(
-            symbol=symbol,
-            entry_price=market_price,
-            side=side
-        )
 
 
 def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
