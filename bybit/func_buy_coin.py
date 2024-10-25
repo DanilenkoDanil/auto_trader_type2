@@ -73,7 +73,8 @@ def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
                 side=side
             )
         except FailedRequestError:
-            pass
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
 
 
 def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
@@ -136,7 +137,8 @@ def buy_coin_by_limit_price_for_all_traders(symbol, side, price, tp=None, sl=Non
         try:
             buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
         except FailedRequestError:
-            pass
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
 
 
 def close_position_for_all_traders(symbol, stop_exists):
@@ -144,7 +146,8 @@ def close_position_for_all_traders(symbol, stop_exists):
         try:
             close_position(account, symbol, stop_exists)
         except FailedRequestError:
-            pass
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
 
 
 def close_order_for_all_traders(symbol):
@@ -152,7 +155,8 @@ def close_order_for_all_traders(symbol):
         try:
             close_order_by_symbol(account, symbol)
         except FailedRequestError:
-            pass
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
 
 
 def close_position(account, symbol, stop_exists, zpz=False):
@@ -234,7 +238,8 @@ def change_tp_ls(message, tp, sl):
             else:
                 change_tp_ls_open_order(account, message, tp, sl)
         except FailedRequestError:
-            pass
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
 
 
 def change_position_zpz(message, close_by_image=False):
@@ -275,7 +280,8 @@ def change_position_zpz(message, close_by_image=False):
 
             change_tp_ls_open_order(account, message, tp, sl)
         except FailedRequestError:
-            pass
+            error_message = traceback.format_exc()
+            ErrorLog.objects.create(error=error_message)
 
 
 def change_tp_ls_open_order(account, message, tp, sl):
