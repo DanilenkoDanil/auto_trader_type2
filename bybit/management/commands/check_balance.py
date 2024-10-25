@@ -49,7 +49,7 @@ def main():
             except Exception as e:
                 error_message = traceback.format_exc()
                 print(error_message)
-        t.sleep(60)
+        t.sleep(600)
 
 
 def check_balance(account, total_balance):
