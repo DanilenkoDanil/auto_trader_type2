@@ -19,42 +19,41 @@ django.setup()
 def main():
     while True:
         print('Start')
+        for account in Trader.objects.select_related('settings').all():
+            try:
+                settings = account.settings
+                session = HTTP(
+                    api_key=account.api_key,
+                    api_secret=account.api_secret,
+                    demo=settings.demo
+                )
 
-            for account in Trader.objects.select_related('settings').all():
-                try:
-                    settings = account.settings
-                    session = HTTP(
-                        api_key=account.api_key,
-                        api_secret=account.api_secret,
-                        demo=settings.demo
-                    )
-    
-                    response = session.get_wallet_balance(
-                        accountType="UNIFIED",
-                        coin="BTC",
-                    )
-                    total_balance = float(response['result']['list'][0]['totalEquity'])
-                    balanc1e = float(response['result']['list'][0]['totalMarginBalance'])
-                    balanc2e = float(response['result']['list'][0]['totalAvailableBalance'])
-                    print(str(total_balance) + " " + str(account))
-                    print(str(balanc1e) + " " + str(account))
-                    print(str(balanc2e) + " " + str(account))
-    
-                    # check_balance(account, total_balance)
-                    check_balance(account, balanc1e)
-    
-                    current = datetime.now()
-                    start = time(23, 30)
-                    end = time(23, 59)
-    
-                    if start <= current.time() <= end:
-                        write_balance(balanc1e, account.username)
-    
-                t.sleep(60)
-            except Exception as e:
-                # print(str(e))
-                error_message = traceback.format_exc()
-                print(error_message)
+                response = session.get_wallet_balance(
+                    accountType="UNIFIED",
+                    coin="BTC",
+                )
+                total_balance = float(response['result']['list'][0]['totalEquity'])
+                balanc1e = float(response['result']['list'][0]['totalMarginBalance'])
+                balanc2e = float(response['result']['list'][0]['totalAvailableBalance'])
+                print(str(total_balance) + " " + str(account))
+                print(str(balanc1e) + " " + str(account))
+                print(str(balanc2e) + " " + str(account))
+
+                # check_balance(account, total_balance)
+                check_balance(account, balanc1e)
+
+                current = datetime.now()
+                start = time(23, 30)
+                end = time(23, 59)
+
+                if start <= current.time() <= end:
+                    write_balance(balanc1e, account.username)
+
+            t.sleep(60)
+        except Exception as e:
+            # print(str(e))
+            error_message = traceback.format_exc()
+            print(error_message)
 
 
 def check_balance(account, total_balance):
