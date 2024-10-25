@@ -48,7 +48,7 @@ def main():
 
                 if start <= current.time() <= end:
                     write_balance(balanc1e, account.username)
-             except Exception as e:
+            except Exception as e:
                 # print(str(e))
                 error_message = traceback.format_exc()
                 print(error_message)
