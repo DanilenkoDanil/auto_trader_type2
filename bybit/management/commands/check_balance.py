@@ -4,7 +4,6 @@ from datetime import time, datetime
 import time as t
 
 import django
-from Tools.scripts.nm2def import symbols
 from django.core.management import BaseCommand
 from requests import session
 
