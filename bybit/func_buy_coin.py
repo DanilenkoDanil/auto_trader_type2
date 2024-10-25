@@ -2,6 +2,7 @@ import traceback
 
 from bybit.models import Trader, EntryPrice, ErrorLog
 from pybit.unified_trading import HTTP
+from pybit.exceptions import FailedRequestError
 from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg, \
     calculate_precision, extract_position_qty, calculate_precision_for_price
 
@@ -134,7 +135,10 @@ def buy_coin_by_limit_price_for_all_traders(symbol, side, price, tp=None, sl=Non
 
 def close_position_for_all_traders(symbol, stop_exists):
     for account in Trader.objects.select_related('settings').all():
-        close_position(account, symbol, stop_exists)
+        try:
+            close_position(account, symbol, stop_exists)
+        except FailedRequestError:
+            pass
 
 
 def close_order_for_all_traders(symbol):

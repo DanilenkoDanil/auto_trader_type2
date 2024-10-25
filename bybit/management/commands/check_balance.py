@@ -5,7 +5,6 @@ import time as t
 
 import django
 from django.core.management import BaseCommand
-from requests import session
 
 from bybit.func_buy_coin import close_position_for_all_traders, get_positions_symbols_for_trader, close_position
 from bybit.models import Trader, ErrorLog, GlobalSetting
@@ -39,7 +38,6 @@ def main():
                 print(str(balanc1e) + " " + str(account))
                 print(str(balanc2e) + " " + str(account))
 
-                # check_balance(account, total_balance)
                 check_balance(account, total_balance)
 
                 current = datetime.now()
@@ -49,11 +47,9 @@ def main():
                 if start <= current.time() <= end:
                     write_balance(total_balance, account.username)
             except Exception as e:
-                # print(str(e))
                 error_message = traceback.format_exc()
                 print(error_message)
         t.sleep(60)
-       
 
 
 def check_balance(account, total_balance):
@@ -69,11 +65,6 @@ def check_balance(account, total_balance):
         acc_symbols = get_positions_symbols_for_trader(account)
         for symbol in acc_symbols:
             close_position_for_all_traders(symbol, True)
-
-        # for account in Trader.objects.select_related('settings').all():
-            # acc_symbols = get_positions_symbols_for_trader(account)
-            # for symbol in acc_symbols:
-            #     close_position(account, symbol, True)
 
 
 def write_balance(balance, trader_name):
