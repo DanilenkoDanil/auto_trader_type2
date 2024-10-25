@@ -239,41 +239,43 @@ def change_tp_ls(message, tp, sl):
 
 def change_position_zpz(message, close_by_image=False):
     for account in Trader.objects.select_related('settings').all():
-        settings = account.settings
-        session = HTTP(
-            api_key=account.api_key,
-            api_secret=account.api_secret,
-            demo=settings.demo
-        )
-        symbol = extract_symbol(message)
-        position = session.get_positions(category="linear", symbol=symbol)['result']['list'][0]
-        tp = position['takeProfit']
+        try:
+            settings = account.settings
+            session = HTTP(
+                api_key=account.api_key,
+                api_secret=account.api_secret,
+                demo=settings.demo
+            )
+            symbol = extract_symbol(message)
+            position = session.get_positions(category="linear", symbol=symbol)['result']['list'][0]
+            tp = position['takeProfit']
 
-        entry_price = EntryPrice.objects.filter(symbol=symbol).last()
-        side = entry_price.side
-        entry_price = entry_price.entry_price
+            entry_price = EntryPrice.objects.filter(symbol=symbol).last()
+            side = entry_price.side
+            entry_price = entry_price.entry_price
 
-        info = session.get_instruments_info(
-            category="linear",
-            symbol=symbol,
-        )
+            info = session.get_instruments_info(
+                category="linear",
+                symbol=symbol,
+            )
 
-        print(info)
+            print(info)
 
-        precision = calculate_precision_for_price(info)
+            precision = calculate_precision_for_price(info)
 
-        if side == "Buy":
-            sl = entry_price * 1.005
-        else:
-            sl = entry_price * 0.995
+            if side == "Buy":
+                sl = entry_price * 1.005
+            else:
+                sl = entry_price * 0.995
 
-        sl = round(sl, precision)
+            sl = round(sl, precision)
 
-        if close_by_image:
-            close_position(account, symbol, False, True)
+            if close_by_image:
+                close_position(account, symbol, False, True)
 
-        change_tp_ls_open_order(account, message, tp, sl)
-
+            change_tp_ls_open_order(account, message, tp, sl)
+        except FailedRequestError:
+            pass
 
 def change_tp_ls_open_order(account, message, tp, sl):
     settings = account.settings
