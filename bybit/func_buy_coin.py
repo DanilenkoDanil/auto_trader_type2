@@ -277,6 +277,7 @@ def change_position_zpz(message, close_by_image=False):
         except FailedRequestError:
             pass
 
+
 def change_tp_ls_open_order(account, message, tp, sl):
     settings = account.settings
     session = HTTP(
