@@ -263,9 +263,9 @@ def change_position_zpz(message, close_by_image=False):
         precision = calculate_precision_for_price(info)
 
         if side == "Buy":
-            sl = entry_price * 1.01
+            sl = entry_price * 1.005
         else:
-            sl = entry_price * 0.99
+            sl = entry_price * 0.995
 
         sl = round(sl, precision)
 
