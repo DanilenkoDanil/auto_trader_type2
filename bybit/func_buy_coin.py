@@ -4,7 +4,7 @@ from bybit.models import Trader, EntryPrice, ErrorLog
 from pybit.unified_trading import HTTP
 from pybit.exceptions import FailedRequestError
 from bybit.utils import extract_symbol, extract_price, extract_side, calculate_tp_sl_price, check_order_msg, \
-    calculate_precision, extract_position_qty, calculate_precision_for_price
+    calculate_precision, extract_position_qty, calculate_precision_for_price, calculate_trigger_direction
 
 
 def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
@@ -104,9 +104,11 @@ def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
     qty = settings.amount_usd / price
     qty = str(round(qty, precision))
 
-    stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, price,
-                                                                                  settings.stop_loss_percent,
-                                                                                  settings.take_profit_percent, sl, tp)
+    stop_loss_price, take_profit_price = calculate_tp_sl_price(side, price, settings.stop_loss_percent,
+                                                                        settings.take_profit_percent, sl, tp)
+
+    tickers = session.get_tickers(category="linear", symbol=symbol,)
+    trigger_direction = calculate_trigger_direction(tickers, price)
 
     orders = [{
         'symbol': symbol,

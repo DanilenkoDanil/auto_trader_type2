@@ -34,9 +34,9 @@ def calculate_tp_sl_price(side, price, sett_sl_perc, sett_tp_perc, new_sl, new_t
     stop_loss_price = new_sl if new_sl is not None else price * (
         1 - (sett_sl_perc / 100) if side == "Buy" else 1 + sett_sl_perc / 100)
 
-    trigger_direction = "1" if side == "Buy" else "2"
+    # trigger_direction = "1" if side == "Buy" else "2"
 
-    return stop_loss_price, take_profit_price, trigger_direction
+    return stop_loss_price, take_profit_price
 
 
 def calculate_precision(info):
@@ -65,3 +65,9 @@ def extract_position_qty(positions):
     for position in positions:
         position_qty += float(position['size'])
     return position_qty
+
+def calculate_trigger_direction(tickers, limit_price):
+    last_price = float(tickers['result']['list'][0]['lastPrice'])
+    if last_price < limit_price:
+        return 1
+    else: return 2
