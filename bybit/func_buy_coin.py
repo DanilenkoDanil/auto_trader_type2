@@ -51,7 +51,7 @@ def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
             check_order_msg(order)
             print(order)
 
-            stop_loss_price, take_profit_price, trigger_direction = (
+            stop_loss_price, take_profit_price = (
                 calculate_tp_sl_price(side,
                                       market_price,
                                       settings.stop_loss_percent,
