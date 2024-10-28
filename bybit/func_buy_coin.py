@@ -301,10 +301,9 @@ def change_tp_ls_open_order(account, message, tp, sl):
 
     print(order)
 
-    stop_loss_price, take_profit_price, trigger_direction = calculate_tp_sl_price(side, mark_price,
-                                                                                  settings.stop_loss_percent,
-                                                                                  settings.take_profit_percent, sl,
-                                                                                  tp)
+    stop_loss_price, take_profit_price = calculate_tp_sl_price(side, mark_price, settings.stop_loss_percent,
+                                                                             settings.take_profit_percent, sl,
+                                                                             tp)
 
     session.set_trading_stop(
         category='linear',
