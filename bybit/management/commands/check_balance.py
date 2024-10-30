@@ -41,15 +41,15 @@ def main():
                 check_balance(account, total_balance)
 
                 current = datetime.now()
-                start = time(0, 30)
-                end = time(0, 59)
+                start = time(23, 30)
+                end = time(23, 59)
 
                 if start <= current.time() <= end:
                     write_balance(total_balance, account.username)
             except Exception as e:
                 error_message = traceback.format_exc()
                 print(error_message)
-        t.sleep(120)
+        t.sleep(600)
 
 
 def check_balance(account, total_balance):
