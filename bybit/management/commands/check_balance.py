@@ -44,6 +44,9 @@ def main():
                 start = time(23, 30)
                 end = time(23, 59)
 
+                print("------------CURRENT TIME BLYAT-----------------")
+                print(current)
+
                 if start <= current.time() <= end:
                     write_balance(total_balance, account.username)
             except Exception as e:
