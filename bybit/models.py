@@ -57,4 +57,5 @@ class EntryPrice(models.Model):
 class ErrorLog(models.Model):
     error = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    symbol = models.CharField(max_length=10)
 

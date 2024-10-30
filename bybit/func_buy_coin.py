@@ -72,66 +72,70 @@ def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
                 entry_price=market_price,
                 side=side
             )
-        except FailedRequestError:
+        except Exception:
             error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+            ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
-    settings = account.settings
-    session = HTTP(
-        api_key=account.api_key,
-        api_secret=account.api_secret,
-        demo=settings.demo
-    )
-
     try:
-        session.set_leverage(
+        settings = account.settings
+        session = HTTP(
+            api_key=account.api_key,
+            api_secret=account.api_secret,
+            demo=settings.demo
+        )
+
+        try:
+            session.set_leverage(
+                category="linear",
+                symbol=symbol,
+                buyLeverage=str(int(settings.leverage)),
+                sellLeverage=str(int(settings.leverage)),
+            )
+        except Exception:
+            pass
+
+        info = session.get_instruments_info(
             category="linear",
             symbol=symbol,
-            buyLeverage=str(int(settings.leverage)),
-            sellLeverage=str(int(settings.leverage)),
+        )
+        precision = calculate_precision(info)
+
+        qty = settings.amount_usd / price
+        qty = str(round(qty, precision))
+
+        stop_loss_price, take_profit_price = calculate_tp_sl_price(side, price, settings.stop_loss_percent,
+                                                                            settings.take_profit_percent, sl, tp)
+
+        tickers = session.get_tickers(category="linear", symbol=symbol,)
+        trigger_direction = calculate_trigger_direction(tickers, price)
+
+        orders = [{
+            'symbol': symbol,
+            'side': side,
+            'order_type': 'Limit',
+            'qty': qty,
+            'time_in_force': "GTC",
+            'price': str(price),
+            'stopLoss': str(stop_loss_price),
+            "takeProfit": str(take_profit_price),
+            "triggerDirection": trigger_direction,
+            "triggerPrice": str(price),
+        }]
+
+        order = session.place_batch_order(category='linear', request=orders)
+        check_order_msg(order)
+        print(order)
+
+        EntryPrice.objects.create(
+            symbol=symbol,
+            entry_price=price,
+            side=side
         )
     except Exception:
-        pass
-
-    info = session.get_instruments_info(
-        category="linear",
-        symbol=symbol,
-    )
-    precision = calculate_precision(info)
-
-    qty = settings.amount_usd / price
-    qty = str(round(qty, precision))
-
-    stop_loss_price, take_profit_price = calculate_tp_sl_price(side, price, settings.stop_loss_percent,
-                                                                        settings.take_profit_percent, sl, tp)
-
-    tickers = session.get_tickers(category="linear", symbol=symbol,)
-    trigger_direction = calculate_trigger_direction(tickers, price)
-
-    orders = [{
-        'symbol': symbol,
-        'side': side,
-        'order_type': 'Limit',
-        'qty': qty,
-        'time_in_force': "GTC",
-        'price': str(price),
-        'stopLoss': str(stop_loss_price),
-        "takeProfit": str(take_profit_price),
-        "triggerDirection": trigger_direction,
-        "triggerPrice": str(price),
-    }]
-
-    order = session.place_batch_order(category='linear', request=orders)
-    check_order_msg(order)
-    print(order)
-
-    EntryPrice.objects.create(
-        symbol=symbol,
-        entry_price=price,
-        side=side
-    )
+        error_message = traceback.format_exc()
+        ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def buy_coin_by_limit_price_for_all_traders(symbol, side, price, tp=None, sl=None):
@@ -140,7 +144,7 @@ def buy_coin_by_limit_price_for_all_traders(symbol, side, price, tp=None, sl=Non
             buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
         except FailedRequestError:
             error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+            ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def close_position_for_all_traders(symbol, stop_exists):
@@ -149,7 +153,7 @@ def close_position_for_all_traders(symbol, stop_exists):
             close_position(account, symbol, stop_exists)
         except FailedRequestError:
             error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+            ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def close_order_for_all_traders(symbol):
@@ -158,62 +162,66 @@ def close_order_for_all_traders(symbol):
             close_order_by_symbol(account, symbol)
         except FailedRequestError:
             error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+            ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def close_position(account, symbol, stop_exists, zpz=False):
-    settings = account.settings
-    if stop_exists:
-        if not settings.close_by_stop:
+    try:
+        settings = account.settings
+        if stop_exists:
+            if not settings.close_by_stop:
+                return
+        else:
+            if not settings.close_by_picture:
+                return
+
+        session = HTTP(
+            api_key=account.api_key,
+            api_secret=account.api_secret,
+            demo=settings.demo
+        )
+
+        positions = session.get_positions(category="linear", symbol=symbol)
+
+        print(positions)
+        position_qty = extract_position_qty(positions)
+
+        if position_qty == 0:
             return
-    else:
-        if not settings.close_by_picture:
-            return
 
-    session = HTTP(
-        api_key=account.api_key,
-        api_secret=account.api_secret,
-        demo=settings.demo
-    )
+        if zpz:
+            position_qty /= 2
 
-    positions = session.get_positions(category="linear", symbol=symbol)
+        side = positions['result']['list'][0]['side']
 
-    print(positions)
-    position_qty = extract_position_qty(positions)
+        info = session.get_instruments_info(
+            category="linear",
+            symbol=symbol,
+        )
 
-    if position_qty == 0:
-        return
+        precision = calculate_precision(info)
+        close_qty = str(round(position_qty, precision))
 
-    if zpz:
-        position_qty /= 2
+        if side == "Buy":
+            close_side = "Sell"
+        else:
+            close_side = "Buy"
 
-    side = positions['result']['list'][0]['side']
+        orders = [{
+            'symbol': symbol,
+            'side': close_side,
+            'order_type': 'Market',
+            'qty': close_qty,
+            'time_in_force': "GTC"
+        }]
 
-    info = session.get_instruments_info(
-        category="linear",
-        symbol=symbol,
-    )
+        print(orders)
 
-    precision = calculate_precision(info)
-    close_qty = str(round(position_qty, precision))
-
-    if side == "Buy":
-        close_side = "Sell"
-    else:
-        close_side = "Buy"
-
-    orders = [{
-        'symbol': symbol,
-        'side': close_side,
-        'order_type': 'Market',
-        'qty': close_qty,
-        'time_in_force': "GTC"
-    }]
-
-    print(orders)
-
-    order = session.place_batch_order(category='linear', request=orders)
-    check_order_msg(order)
+        order = session.place_batch_order(category='linear', request=orders)
+        check_order_msg(order)
+    except Exception:
+        error_message = traceback.format_exc()
+        ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def change_tp_ls(message, tp, sl):
@@ -239,9 +247,9 @@ def change_tp_ls(message, tp, sl):
                 buy_coin_by_limit_price(account, symbol, side, price, tp, sl)
             else:
                 change_tp_ls_open_order(account, message, tp, sl)
-        except FailedRequestError:
+        except Exception:
             error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+            ErrorLog.objects.create(error=error_message, symbol=extract_symbol(message))
 
 
 def change_position_zpz(message, close_by_image=False):
@@ -281,37 +289,41 @@ def change_position_zpz(message, close_by_image=False):
                 close_position(account, symbol, False, True)
 
             change_tp_ls_open_order(account, message, tp, sl)
-        except FailedRequestError:
+        except Exception:
             error_message = traceback.format_exc()
-            ErrorLog.objects.create(error=error_message)
+            ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def change_tp_ls_open_order(account, message, tp, sl):
-    settings = account.settings
-    session = HTTP(
-        api_key=account.api_key,
-        api_secret=account.api_secret,
-        demo=settings.demo
-    )
+    try:
+        settings = account.settings
+        session = HTTP(
+            api_key=account.api_key,
+            api_secret=account.api_secret,
+            demo=settings.demo
+        )
 
-    symbol = extract_symbol(message)
-    order = session.get_positions(category="linear", symbol=symbol)
-    side = order['result']['list'][0]['side']
-    mark_price = float(order['result']['list'][0]['markPrice'])
+        symbol = extract_symbol(message)
+        order = session.get_positions(category="linear", symbol=symbol)
+        side = order['result']['list'][0]['side']
+        mark_price = float(order['result']['list'][0]['markPrice'])
 
-    print(order)
+        print(order)
 
-    stop_loss_price, take_profit_price = calculate_tp_sl_price(side, mark_price, settings.stop_loss_percent,
-                                                                             settings.take_profit_percent, sl,
-                                                                             tp)
+        stop_loss_price, take_profit_price = calculate_tp_sl_price(side, mark_price, settings.stop_loss_percent,
+                                                                                 settings.take_profit_percent, sl,
+                                                                                 tp)
 
-    session.set_trading_stop(
-        category='linear',
-        symbol=symbol,
-        side=side,
-        stop_loss=str(stop_loss_price),
-        take_profit=str(take_profit_price),
-    )
+        session.set_trading_stop(
+            category='linear',
+            symbol=symbol,
+            side=side,
+            stop_loss=str(stop_loss_price),
+            take_profit=str(take_profit_price),
+        )
+    except Exception:
+        error_message = traceback.format_exc()
+        ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def close_order_by_symbol(account, symbol):
@@ -335,7 +347,7 @@ def close_order_by_symbol(account, symbol):
             )
     except:
         error_message = traceback.format_exc()
-        ErrorLog.objects.create(error=error_message)
+        ErrorLog.objects.create(error=error_message, symbol=symbol)
 
 
 def get_positions_symbols_for_trader(account):

@@ -5,7 +5,7 @@ from .models import Trader, Settings, Chat, EntryPrice, ErrorLog, GlobalSetting
 
 @admin.register(ErrorLog)
 class ErrorAdmin(admin.ModelAdmin):
-    list_display = ('timestamp',)
+    list_display = ('symbol','timestamp',)
 
 
 admin.site.register(Trader)

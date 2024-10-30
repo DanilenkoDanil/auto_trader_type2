@@ -24,7 +24,7 @@ def check_order_msg(order):
     order_msg = order['retExtInfo']['list'][0]['msg']
     if order_msg != 'OK':
         print(order)
-        raise InvalidLimitPriceException
+        raise InvalidLimitPriceException(order)
 
 
 def calculate_tp_sl_price(side, price, sett_sl_perc, sett_tp_perc, new_sl, new_tp):
