@@ -41,8 +41,8 @@ def main():
                 check_balance(account, total_balance)
 
                 current = datetime.now()
-                start = time(23, 30)
-                end = time(23, 59)
+                start = time(0, 30)
+                end = time(0, 59)
 
                 print("------------CURRENT TIME BLYAT-----------------")
                 print(current)
@@ -52,7 +52,7 @@ def main():
             except Exception as e:
                 error_message = traceback.format_exc()
                 print(error_message)
-        t.sleep(600)
+        t.sleep(120)
 
 
 def check_balance(account, total_balance):
