@@ -34,18 +34,15 @@ def main():
                 total_balance = float(response['result']['list'][0]['totalEquity'])
                 balanc1e = float(response['result']['list'][0]['totalMarginBalance'])
                 balanc2e = float(response['result']['list'][0]['totalAvailableBalance'])
-                print(str(total_balance) + " " + str(account))
-                print(str(balanc1e) + " " + str(account))
-                print(str(balanc2e) + " " + str(account))
+                print("total equity " + str(total_balance) + " " + str(account))
+                print("total margin bal " + str(balanc1e) + " " + str(account))
+                print("total avail bal " + str(balanc2e) + " " + str(account))
 
                 check_balance(account, total_balance)
 
                 current = datetime.now()
                 start = time(0, 30)
                 end = time(0, 59)
-
-                print("------------CURRENT TIME BLYAT-----------------")
-                print(current)
 
                 if start <= current.time() <= end:
                     write_balance(total_balance, account.username)
@@ -71,7 +68,7 @@ def check_balance(account, total_balance):
 
 
 def write_balance(balance, trader_name):
-    account = Trader.objects.filter(username=trader_name)
+    account = Trader.objects.get(username=trader_name)
     account.balance = balance
     account.save()
 
