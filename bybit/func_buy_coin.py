@@ -278,17 +278,20 @@ def change_position_zpz(message, close_by_image=False):
 
             precision = calculate_precision_for_price(info)
 
-            if side == "Buy":
-                sl = entry_price * 1.005
-            else:
-                sl = entry_price * 0.995
-
-            sl = round(sl, precision)
-
             if close_by_image:
                 close_position(account, symbol, False, True)
 
-            change_tp_ls_open_order(account, message, tp, sl)
+            delta = entry_price * 0.005
+            direction = -1 if side == "Buy" else 1
+
+            for i in range(3):
+                sl = entry_price + direction * delta
+                if i == 0:
+                    delta *= -1
+
+                sl = round(sl, precision)
+                change_tp_ls_open_order(account, message, tp, sl)
+
         except Exception:
             error_message = traceback.format_exc()
             ErrorLog.objects.create(error=error_message, symbol=symbol)
