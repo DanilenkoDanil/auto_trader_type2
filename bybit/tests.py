@@ -26,6 +26,7 @@ class BybitTestCase(TestCase):
         for account in Trader.objects.select_related('settings').all():
             settings = account.settings
             session = HTTP(
+                testnet=False,
                 api_key=account.api_key,
                 api_secret=account.api_secret,
                 demo=settings.demo
@@ -51,6 +52,7 @@ class BybitTestCase(TestCase):
         for account in Trader.objects.select_related('settings').all():
             settings = account.settings
             session = HTTP(
+                testnet=False,
                 api_key=account.api_key,
                 api_secret=account.api_secret,
                 demo=settings.demo

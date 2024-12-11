@@ -22,6 +22,7 @@ def main():
             try:
                 settings = account.settings
                 session = HTTP(
+                    testnet=False,
                     api_key=account.api_key,
                     api_secret=account.api_secret,
                     demo=settings.demo

@@ -13,6 +13,7 @@ def buy_coin_with_stop_loss(symbol, side, spec_tp=None, spec_sl=None):
             settings = account.settings
             print(settings)
             session = HTTP(
+                testnet=False,
                 api_key=account.api_key,
                 api_secret=account.api_secret,
                 demo=settings.demo
@@ -81,6 +82,7 @@ def buy_coin_by_limit_price(account, symbol, side, price, tp=None, sl=None):
     try:
         settings = account.settings
         session = HTTP(
+            testnet=False,
             api_key=account.api_key,
             api_secret=account.api_secret,
             demo=settings.demo
@@ -176,6 +178,7 @@ def close_position(account, symbol, stop_exists, zpz=False):
                 return
 
         session = HTTP(
+            testnet=False,
             api_key=account.api_key,
             api_secret=account.api_secret,
             demo=settings.demo
@@ -232,6 +235,7 @@ def change_tp_ls(message, tp, sl):
                 continue
 
             session = HTTP(
+                testnet=False,
                 api_key=account.api_key,
                 api_secret=account.api_secret,
                 demo=settings.demo
@@ -257,6 +261,7 @@ def change_position_zpz(message, close_by_image=False):
         try:
             settings = account.settings
             session = HTTP(
+                testnet=False,
                 api_key=account.api_key,
                 api_secret=account.api_secret,
                 demo=settings.demo
@@ -301,6 +306,7 @@ def change_tp_ls_open_order(account, message, tp, sl):
     try:
         settings = account.settings
         session = HTTP(
+            testnet=False,
             api_key=account.api_key,
             api_secret=account.api_secret,
             demo=settings.demo
@@ -332,6 +338,7 @@ def change_tp_ls_open_order(account, message, tp, sl):
 def close_order_by_symbol(account, symbol):
     settings = account.settings
     session = HTTP(
+        testnet=False,
         api_key=account.api_key,
         api_secret=account.api_secret,
         demo=settings.demo
@@ -356,6 +363,7 @@ def close_order_by_symbol(account, symbol):
 def get_positions_symbols_for_trader(account):
     settings = account.settings
     session = HTTP(
+        testnet=False,
         api_key=account.api_key,
         api_secret=account.api_secret,
         demo=settings.demo
